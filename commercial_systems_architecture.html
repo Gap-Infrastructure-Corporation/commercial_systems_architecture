@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIC SIO 2.0 - Complete System Architecture with Kafka Event Streaming</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1a237e;
+            margin-bottom: 10px;
+            font-size: 32px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .architecture-canvas {
+            position: relative;
+            width: 100%;
+            height: 1600px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        
+        .layer {
+            position: absolute;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 2px solid;
+        }
+        
+        .layer-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a237e;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        /* Layer positioning and colors */
+        .frontend-layer {
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            height: 120px;
+            border-color: #3498db;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(227,242,253,0.98));
+            z-index: 20;
+        }
+        
+        .gateway-layer {
+            top: 160px;
+            left: 20px;
+            right: 20px;
+            height: 100px;
+            border-color: #f39c12;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,248,225,0.98));
+            z-index: 20;
+        }
+        
+        .kafka-layer {
+            top: 280px;
+            left: 20px;
+            right: 20px;
+            height: 120px;
+            border-color: #e74c3c;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,235,238,0.98));
+            z-index: 15;
+        }
+        
+        .services-layer {
+            top: 420px;
+            left: 20px;
+            width: 1200px;
+            height: 500px;
+            border-color: #27ae60;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(232,245,233,0.98));
+            z-index: 10;
+        }
+        
+        .external-layer {
+            top: 420px;
+            right: 20px;
+            width: 300px;
+            height: 500px;
+            border-color: #9b59b6;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(243,229,245,0.98));
+            z-index: 10;
+        }
+        
+        .shared-services-layer {
+            top: 940px;
+            left: 20px;
+            right: 20px;
+            height: 180px;
+            border-color: #8e44ad;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(243,229,245,0.98));
+            z-index: 10;
+        }
+        
+        .data-layer {
+            top: 1140px;
+            left: 20px;
+            right: 20px;
+            height: 420px;
+            border-color: #34495e;
+            background: linear-gradient(135deg, rgba(52,73,94,0.98), rgba(44,62,80,0.98));
+            z-index: 10;
+        }
+        
+        .service {
+            position: absolute;
+            background: white;
+            border: 3px solid;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .service:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+        
+        /* Service type colors - ALL green for domain services */
+        .domain-service {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+        }
+        
+        .frontend {
+            border-color: #3498db;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        }
+        
+        .gateway-service {
+            border-color: #f39c12;
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+        }
+        
+        .kafka-service {
+            border-color: #e74c3c;
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+        }
+        
+        .shared-service {
+            border-color: #8e44ad;
+            background: linear-gradient(135deg, #f4ecf7, #e8daef);
+        }
+        
+        .external {
+            border-color: #9b59b6;
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+        }
+        
+        .database {
+            border-color: #fff;
+            background: linear-gradient(135deg, #455a64, #37474f);
+            color: white;
+        }
+        
+        .service-label {
+            font-size: 11px;
+            margin-top: 5px;
+            color: #555;
+            font-weight: normal;
+        }
+        
+        .port {
+            background: #2c3e50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-top: 5px;
+            display: inline-block;
+        }
+        
+        .feature-tag {
+            background: #3498db;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 9px;
+            margin: 2px;
+            display: inline-block;
+        }
+        
+        .db-tag {
+            background: #16a085;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 9px;
+            margin: 2px;
+            display: inline-block;
+        }
+        
+        .kafka-tag {
+            background: #e74c3c;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 9px;
+            margin: 2px;
+            display: inline-block;
+        }
+        
+        /* Service Detail Modal */
+        .service-detail-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .service-detail-modal.active {
+            display: block;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 16px 16px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .feature-section {
+            margin-bottom: 20px;
+        }
+        
+        .feature-section h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .feature-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .feature-item {
+            background: #ecf0f1;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+        }
+        
+        .feature-item.implemented {
+            background: #d4edda;
+            border-color: #27ae60;
+            color: #155724;
+        }
+        
+        .feature-item.in-progress {
+            background: #fff3cd;
+            border-color: #f39c12;
+            color: #856404;
+        }
+        
+        .feature-item.planned {
+            background: #cce5ff;
+            border-color: #3498db;
+            color: #004085;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 30px;
+        }
+        
+        .close-modal:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
+        
+        /* Legend - repositioned */
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            font-size: 12px;
+            max-width: 200px;
+            z-index: 100;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 5px;
+            border: 2px solid;
+        }
+        
+        /* Microservice ready indicator */
+        .microservice-ready {
+            position: absolute;
+            background: rgba(241, 196, 15, 0.2);
+            border: 2px dashed #f1c40f;
+            border-radius: 12px;
+            padding: 5px;
+        }
+        
+        /* Kafka connections */
+        .kafka-connection {
+            position: absolute;
+            border: 2px dashed #e74c3c;
+            opacity: 0.5;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ GIC SIO 2.0 - Complete System Architecture</h1>
+        <p class="subtitle">Event-Driven Microservices Architecture with Kafka | Click any service for detailed features</p>
+        
+        <div class="architecture-canvas">
+            <!-- Frontend Layer -->
+            <div class="layer frontend-layer">
+                <div class="layer-title">💻 Frontend Applications (React + TypeScript + Vite)</div>
+                
+                <div class="service frontend" data-service="commercial-ui" style="top: 40px; left: 100px; width: 220px;">
+                    <strong>Commercial System</strong>
+                    <div class="service-label">Main Business Portal</div>
+                    <div class="port">Port: 3000</div>
+                    <div class="feature-tag">12 Modules</div>
+                </div>
+                
+                <div class="service frontend" data-service="asset-ui" style="top: 40px; left: 350px; width: 220px;">
+                    <strong>Asset Management</strong>
+                    <div class="service-label">Asset Operations Portal</div>
+                    <div class="port">Port: 3001</div>
+                    <div class="feature-tag">14 Features</div>
+                </div>
+                
+                <div class="service frontend" data-service="orgchart-ui" style="top: 40px; left: 600px; width: 200px;">
+                    <strong>GIC OrgChart</strong>
+                    <div class="service-label">Organization Visualization</div>
+                    <div class="port">Port: 3002</div>
+                </div>
+            </div>
+            
+            <!-- Gateway Layer -->
+            <div class="layer gateway-layer">
+                <div class="layer-title">🔒 API Gateway (JWT Authentication & Routing)</div>
+                
+                <div class="service gateway-service" data-service="gateway" style="top: 35px; left: 300px; width: 300px;">
+                    <strong>SIO Gateway Service</strong>
+                    <div class="service-label">Spring Cloud Gateway</div>
+                    <div class="port">Port: 8080</div>
+                    <div class="feature-tag">JWT Validation</div>
+                    <div class="feature-tag">Circuit Breaker</div>
+                    <div class="feature-tag">Rate Limiting</div>
+                    <div class="feature-tag">Load Balancing</div>
+                </div>
+            </div>
+            
+            <!-- Kafka Event Streaming Layer -->
+            <div class="layer kafka-layer">
+                <div class="layer-title">📡 Event Streaming Platform</div>
+                
+                <div class="service kafka-service" data-service="kafka" style="top: 35px; left: 250px; width: 400px;">
+                    <strong>Apache Kafka</strong>
+                    <div class="service-label">Event-Driven Communication & Async Processing</div>
+                    <div class="port">Port: 9092</div>
+                    <div class="kafka-tag">Event Streaming</div>
+                    <div class="kafka-tag">Pub/Sub</div>
+                    <div class="kafka-tag">Event Sourcing</div>
+                    <div class="kafka-tag">CQRS</div>
+                    <div style="margin-top: 5px; font-size: 10px; color: #666;">
+                        Topics: employee-events | asset-events | notification-events | audit-events
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Domain Services Layer (All Green) -->
+            <div class="layer services-layer">
+                <div class="layer-title">🚀 Microservices & Domain Services</div>
+                
+                <!-- HR Service -->
+                <div class="service domain-service" data-service="hr-service" style="top: 50px; left: 30px; width: 180px;">
+                    <strong>HR Service</strong>
+                    <div class="service-label">Onboarding & Bursary</div>
+                    <div class="port">Port: 8083</div>
+                    <div class="db-tag">Own DB</div>
+                    <div class="kafka-tag">Kafka Events</div>
+                </div>
+                
+                <!-- Commercial Service -->
+                <div class="service domain-service" data-service="commercial" style="top: 50px; left: 230px; width: 200px;">
+                    <strong>Commercial Service</strong>
+                    <div class="service-label">Contracts & Billing</div>
+                    <div class="port">Port: 8091</div>
+                    <div class="db-tag">Own DB</div>
+                    <div class="kafka-tag">Kafka Events</div>
+                </div>
+                
+                <!-- Asset Service -->
+                <div class="microservice-ready" style="top: 40px; left: 450px; width: 320px; height: 150px;">
+                    <strong style="color: #f39c12;">🎯 Asset Management Domain</strong>
+                    
+                    <div class="service domain-service" data-service="asset-service" style="top: 25px; left: 10px; width: 300px; height: 110px;">
+                        <strong>Asset Service</strong>
+                        <div class="service-label">Complete Asset Lifecycle</div>
+                        <div class="port">Port: 8086</div>
+                        <div class="db-tag">Own DB</div>
+                        <div class="kafka-tag">Kafka Events</div>
+                        <div style="margin-top: 5px;">
+                            <div class="feature-tag" style="font-size: 8px;">Registration</div>
+                            <div class="feature-tag" style="font-size: 8px;">Maintenance</div>
+                            <div class="feature-tag" style="font-size: 8px;">Disposal</div>
+                            <div class="feature-tag" style="font-size: 8px;">Audit</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Builder Service -->
+                <div class="service domain-service" data-service="dashboard" style="top: 50px; left: 790px; width: 180px;">
+                    <strong>Dashboard Builder</strong>
+                    <div class="service-label">Analytics & KPIs</div>
+                    <div class="port">Port: 8087</div>
+                    <div class="db-tag">Own DB</div>
+                </div>
+                
+                <!-- Legal Service -->
+                <div class="service domain-service" data-service="legal" style="top: 220px; left: 30px; width: 180px;">
+                    <strong>Legal Service</strong>
+                    <div class="service-label">Contracts & Compliance</div>
+                    <div class="port">Multi-Module</div>
+                    <div class="db-tag">Own DB</div>
+                </div>
+                
+                <!-- Engineering Service -->
+                <div class="service domain-service" data-service="engineering" style="top: 220px; left: 230px; width: 180px;">
+                    <strong>Engineering Service</strong>
+                    <div class="service-label">Design & Drawings</div>
+                    <div class="port">Port: 8081/8082</div>
+                    <div class="db-tag">Own DB</div>
+                </div>
+                
+                <!-- Audit Service -->
+                <div class="service domain-service" data-service="audit" style="top: 220px; left: 430px; width: 180px;">
+                    <strong>Audit Service</strong>
+                    <div class="service-label">Compliance & Trail</div>
+                    <div class="port">Port: 8089</div>
+                    <div class="db-tag">Own DB</div>
+                    <div class="kafka-tag">Kafka Events</div>
+                </div>
+                
+                <!-- Corporate Governance -->
+                <div class="service domain-service" data-service="corporate" style="top: 220px; left: 630px; width: 180px;">
+                    <strong>Corporate Governance</strong>
+                    <div class="service-label">Risk & Policies</div>
+                    <div class="port">Port: 8090</div>
+                    <div class="db-tag">Own DB</div>
+                </div>
+                
+                <!-- Admin Service -->
+                <div class="service domain-service" data-service="admin" style="top: 350px; left: 30px; width: 180px;">
+                    <strong>Admin Service</strong>
+                    <div class="service-label">System Administration</div>
+                    <div class="port">Port: 8097</div>
+                    <div class="db-tag">Own DB</div>
+                </div>
+                
+                <!-- Alerts Service -->
+                <div class="service domain-service" data-service="alerts" style="top: 350px; left: 230px; width: 180px;">
+                    <strong>Alerts Service</strong>
+                    <div class="service-label">Alert Management</div>
+                    <div class="port">Port: 8096</div>
+                    <div class="db-tag">Own DB</div>
+                    <div class="kafka-tag">Kafka Events</div>
+                </div>
+            </div>
+            
+            <!-- External Systems Layer -->
+            <div class="layer external-layer">
+                <div class="layer-title">🌐 External Integrations</div>
+                
+                <div class="service external" data-service="azure-ad" style="top: 40px; left: 20px; width: 260px;">
+                    <strong>Azure AD</strong>
+                    <div class="service-label">Identity & Organization</div>
+                    <div class="feature-tag">SSO</div>
+                    <div class="feature-tag">User Sync</div>
+                    <div class="feature-tag">Groups</div>
+                    <div style="margin-top: 5px; font-size: 10px; color: #666;">
+                        ✓ Auto-creates Microsoft 365 accounts<br/>
+                        ✓ Syncs organizational hierarchy<br/>
+                        ✓ Manages permissions & groups
+                    </div>
+                </div>
+                
+                <div class="service external" data-service="adobe" style="top: 170px; left: 20px; width: 260px;">
+                    <strong>Adobe Sign</strong>
+                    <div class="service-label">Digital Signatures</div>
+                    <div class="feature-tag">Contract Signing</div>
+                    <div class="feature-tag">Document Tracking</div>
+                    <div style="margin-top: 5px; font-size: 10px; color: #666;">
+                        ✓ Bursary contract signatures<br/>
+                        ✓ Automated reminders<br/>
+                        ✓ Signature status tracking
+                    </div>
+                </div>
+                
+                <div class="service external" data-service="sage" style="top: 290px; left: 20px; width: 260px;">
+                    <strong>Sage 300 ERP</strong>
+                    <div class="service-label">HR & Financial System</div>
+                    <div class="feature-tag">Employee Data</div>
+                    <div class="feature-tag">Payroll</div>
+                    <div style="margin-top: 5px; font-size: 10px; color: #666;">
+                        ✓ Auto-creates employee records<br/>
+                        ✓ Syncs personal information<br/>
+                        ✓ Financial integration
+                    </div>
+                </div>
+                
+                <div class="service external" data-service="teams" style="top: 410px; left: 20px; width: 260px;">
+                    <strong>Microsoft Teams</strong>
+                    <div class="service-label">Collaboration</div>
+                    <div class="feature-tag">Notifications</div>
+                    <div style="margin-top: 5px; font-size: 10px; color: #666;">
+                        ✓ Task notifications<br/>
+                        ✓ Approval alerts
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Shared Services Layer -->
+            <div class="layer shared-services-layer">
+                <div class="layer-title">🔗 Shared/Cross-Cutting Services</div>
+                
+                <div class="service shared-service" data-service="user-service" style="top: 40px; left: 50px; width: 180px;">
+                    <strong>User Service</strong>
+                    <div class="service-label">Identity & Access</div>
+                    <div class="port">Port: 8085</div>
+                    <div class="db-tag">Own DB</div>
+                    <div class="feature-tag">JWT Auth</div>
+                </div>
+                
+                <div class="service shared-service" data-service="notification" style="top: 40px; left: 250px; width: 180px;">
+                    <strong>Notification Service</strong>
+                    <div class="service-label">Multi-Channel Alerts</div>
+                    <div class="port">Port: 8084</div>
+                    <div class="db-tag">Own DB</div>
+                    <div class="kafka-tag">Kafka Consumer</div>
+                </div>
+                
+                <div class="service shared-service" data-service="document-service" style="top: 40px; left: 450px; width: 180px;">
+                    <strong>Document Service</strong>
+                    <div class="service-label">Centralized Doc Mgmt</div>
+                    <div class="port">Port: 8095</div>
+                    <div class="feature-tag">Versioning</div>
+                    <div class="feature-tag">Storage</div>
+                </div>
+                
+                <div class="service shared-service" data-service="redis" style="top: 40px; left: 650px; width: 160px;">
+                    <strong>Redis Cache</strong>
+                    <div class="service-label">Performance Layer</div>
+                    <div class="port">Port: 6379</div>
+                    <div class="feature-tag">Session Store</div>
+                    <div class="feature-tag">Cache</div>
+                </div>
+                
+                <div class="service shared-service" data-service="websocket" style="top: 40px; left: 830px; width: 160px;">
+                    <strong>WebSocket Hub</strong>
+                    <div class="service-label">Real-time Updates</div>
+                    <div class="feature-tag">STOMP</div>
+                    <div class="feature-tag">Live Events</div>
+                </div>
+                
+                <div class="service shared-service" data-service="monitoring" style="top: 100px; left: 250px; width: 180px;">
+                    <strong>Monitoring Service</strong>
+                    <div class="service-label">Observability</div>
+                    <div class="feature-tag">Health Checks</div>
+                    <div class="feature-tag">Metrics</div>
+                </div>
+                
+                <div class="service shared-service" data-service="data-hub" style="top: 100px; left: 450px; width: 180px;">
+                    <strong>Data Hub</strong>
+                    <div class="service-label">Central Repository</div>
+                    <div class="port">In Development</div>
+                    <div class="feature-tag">Data Governance</div>
+                </div>
+                
+                <div class="service shared-service" data-service="flowable" style="top: 100px; left: 650px; width: 160px;">
+                    <strong>Flowable</strong>
+                    <div class="service-label">BPM Engine</div>
+                    <div class="port">In Progress</div>
+                    <div class="feature-tag">Workflows</div>
+                </div>
+            </div>
+            
+            <!-- Data Layer -->
+            <div class="layer data-layer">
+                <div class="layer-title" style="color: white;">💾 Data Layer (Each Service Has Own Database)</div>
+                
+                <div style="margin-top: 20px;">
+                    <h3 style="color: white; margin-bottom: 15px;">Domain Service Databases</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>HR DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Onboarding, Bursary</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Asset DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Assets, Maintenance</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Commercial DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Contracts, Billing</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Legal DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Compliance, Docs</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Engineering DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Designs, Drawings</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Audit DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Audit Trail</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Governance DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Policies, Risk</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Dashboard DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Analytics, KPIs</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 style="color: white; margin-bottom: 15px;">Shared Service Storage</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>User DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Identity, Roles</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Notification DB</strong>
+                            <div class="service-label">SQL Server</div>
+                            <div style="font-size: 9px;">Alert History</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>File Storage</strong>
+                            <div class="service-label">Blob/NFS</div>
+                            <div style="font-size: 9px;">Documents</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Kafka Topics</strong>
+                            <div class="service-label">Event Store</div>
+                            <div style="font-size: 9px;">Event Streaming</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>Redis Store</strong>
+                            <div class="service-label">In-Memory</div>
+                            <div style="font-size: 9px;">Cache, Sessions</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 130px; height: 60px;">
+                            <strong>H2 Database</strong>
+                            <div class="service-label">In-Memory</div>
+                            <div style="font-size: 9px;">Testing Only</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <h3 style="color: white; margin-bottom: 15px;">Upcoming Technologies</h3>
+                    <div style="display: flex; gap: 15px;">
+                        <div class="service database" style="position: relative; width: 150px; height: 60px; background: linear-gradient(135deg, #f39c12, #e67e22);">
+                            <strong>PlayWright</strong>
+                            <div class="service-label">Test Automation</div>
+                            <div style="font-size: 9px;">In Development</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 150px; height: 60px; background: linear-gradient(135deg, #f39c12, #e67e22);">
+                            <strong>Data Hub</strong>
+                            <div class="service-label">Central Repository</div>
+                            <div style="font-size: 9px;">In Development</div>
+                        </div>
+                        
+                        <div class="service database" style="position: relative; width: 150px; height: 60px; background: linear-gradient(135deg, #f39c12, #e67e22);">
+                            <strong>External Data Mgmt</strong>
+                            <div class="service-label">3rd Party Integration</div>
+                            <div style="font-size: 9px;">Planning Phase</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <strong>🔑 Legend</strong>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #3498db; background: #e3f2fd;"></div>
+                Frontend
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #f39c12; background: #fff8e1;"></div>
+                Gateway
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #e74c3c; background: #ffebee;"></div>
+                Kafka
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #27ae60; background: #e8f5e9;"></div>
+                Domain Service
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #8e44ad; background: #f4ecf7;"></div>
+                Shared Service
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #9b59b6; background: #f3e5f5;"></div>
+                External System
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border-color: #455a64; background: #455a64;"></div>
+                Database
+            </div>
+        </div>
+    </div>
+    
+    <!-- Service Detail Modal -->
+    <div class="overlay" onclick="closeModal()"></div>
+    <div class="service-detail-modal" id="serviceModal">
+        <div class="modal-header">
+            <h2 id="modalTitle">Service Details</h2>
+            <button class="close-modal" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Content will be injected here -->
+        </div>
+    </div>
+    
+    <script>
+        // Comprehensive Service Details based on Executive Report
+        const serviceDetails = {
+            'kafka': {
+                name: 'Apache Kafka - Event Streaming Platform',
+                description: 'Central event streaming platform enabling asynchronous, event-driven communication between microservices',
+                features: {
+                    'Core Capabilities': [
+                        'Event Streaming for real-time data synchronization',
+                        'Publish-Subscribe messaging pattern',
+                        'Event Sourcing for audit trail',
+                        'CQRS (Command Query Responsibility Segregation)',
+                        'Message replay capability',
+                        'Guaranteed message delivery',
+                        'Horizontal scalability',
+                        'Multi-datacenter replication'
+                    ],
+                    'Event Topics': [
+                        'employee-events: Onboarding, profile updates, role changes',
+                        'asset-events: Asset creation, movement, disposal',
+                        'notification-events: Alert triggers, email queues',
+                        'audit-events: All system changes for compliance',
+                        'bursary-events: Application status, approvals',
+                        'commercial-events: Contract updates, billing events',
+                        'workflow-events: Task assignments, completions'
+                    ],
+                    'Integration Benefits': [
+                        'Decouples services - no direct API calls needed',
+                        'Improves system resilience and fault tolerance',
+                        'Enables real-time event processing',
+                        'Supports event replay for debugging',
+                        'Facilitates microservice communication',
+                        'Reduces system latency',
+                        'Enables event-driven workflows'
+                    ]
+                },
+                technical: {
+                    'Protocol': 'Binary over TCP',
+                    'Port': '9092',
+                    'Zookeeper Port': '2181',
+                    'Retention': '7 days default',
+                    'Partitions': 'Auto-scaled',
+                    'Replication': 'Factor of 3'
+                }
+            },
+            'hr-service': {
+                name: 'HR Service',
+                description: 'Comprehensive HR management service handling employee onboarding and bursary applications',
+                features: {
+                    'Onboarding Module - Completed': [
+                        '✅ View all employees in progress with status tracking',
+                        '✅ Employee detail viewing and editing',
+                        '✅ Completion notification system',
+                        '✅ Search and filter by status and departments',
+                        '✅ Pull Company/Department from Azure AD',
+                        '✅ Pull Manager info from Active Directory',
+                        '✅ Submit personal information to Sage 300',
+                        '✅ Automated task notifications to IT for device setup',
+                        '✅ Automated notifications to Office Coordination',
+                        '✅ Microsoft 365 account auto-creation via Azure AD',
+                        '✅ Asset request and assignment workflow',
+                        '✅ Post-logistics completion tracking',
+                        '✅ Progress bar visualization',
+                        '✅ Data validation before Sage submission'
+                    ],
+                    'Bursary Application - Completed': [
+                        '✅ Application submission with document upload',
+                        '✅ Manager review and scoring system',
+                        '✅ HR eligibility verification',
+                        '✅ Committee scoring workflow',
+                        '✅ Multi-level approval process',
+                        '✅ Adobe Sign contract integration',
+                        '✅ Application history tracking',
+                        '✅ Automated notifications at each stage',
+                        '✅ Document completeness verification',
+                        '✅ Support/decline functionality with comments'
+                    ],
+                    'In Development': [
+                        '🔄 Automated HR notification after Sage submission',
+                        '🔄 Advanced reporting dashboards'
+                    ]
+                },
+                technical: {
+                    'Framework': 'Spring Boot 3.x',
+                    'Database': 'MS SQL Server',
+                    'Port': '8083',
+                    'Integration': 'Azure AD, Sage 300, Adobe Sign',
+                    'Events': 'Kafka Producer/Consumer'
+                }
+            },
+            'asset-service': {
+                name: 'Asset Service',
+                description: 'Complete asset lifecycle management from registration to disposal',
+                features: {
+                    'Asset Registration - Completed': [
+                        '✅ Asset entry form with validation',
+                        '✅ Unique Asset ID and Barcode generation',
+                        '✅ Bulk upload support',
+                        '✅ Asset classification and filtering',
+                        '✅ Complete audit trail',
+                        '✅ Insurance linking with documentation',
+                        '✅ Warranty allocation with documentation',
+                        '✅ Movement tracking with notifications',
+                        '✅ Historical movement reports',
+                        '✅ Live asset register',
+                        '✅ Role-based movement restrictions'
+                    ],
+                    'Maintenance Management - Testing': [
+                        '🧪 Asset lifecycle phase classification',
+                        '🧪 Automatic status transitions',
+                        '🧪 Manual status updates with safeguards',
+                        '🧪 Service schedule creation',
+                        '🧪 Preventive/Corrective/Warranty services',
+                        '🧪 Repeating maintenance cycles',
+                        '🧪 Alert escalation system',
+                        '🧪 Service log with full details',
+                        '🧪 Insurance provider notifications'
+                    ],
+                    'In Development': [
+                        '🔄 Mobile-responsive audit interface',
+                        '🔄 Barcode/QR scanning via camera',
+                        '🔄 GPS coordinate capture',
+                        '🔄 Offline functionality',
+                        '🔄 Disposal and write-off workflows',
+                        '🔄 Advanced analytics dashboards'
+                    ],
+                    'Reporting & Analytics - Completed': [
+                        '✅ Centralized reporting across all assets',
+                        '✅ Real-time analytics dashboards',
+                        '✅ Warranty and insurance monitoring',
+                        '✅ KPI tracking and aggregation',
+                        '✅ Custom filters and exports (Excel/PDF)',
+                        '✅ Drill-down analytics'
+                    ]
+                },
+                technical: {
+                    'Framework': 'Spring Boot 3.x',
+                    'Database': 'MS SQL Server',
+                    'Architecture': 'Modular Monolith',
+                    'Port': '8086',
+                    'Events': 'Kafka Producer',
+                    'Future': 'Microservice decomposition ready'
+                }
+            },
+            'commercial': {
+                name: 'Commercial Service',
+                description: 'Manages all commercial operations including contracts, billing, insurance, and vendor management',
+                features: {
+                    'Contract Management': [
+                        'Digital contract lifecycle management',
+                        'Contract templates and clauses',
+                        'Automated contract generation',
+                        'Contract register with search',
+                        'Version control and history',
+                        'Approval workflows',
+                        'Performance guarantees tracking',
+                        'SLA management and monitoring'
+                    ],
+                    'Billing & Finance': [
+                        'Client billing engine',
+                        'Invoice generation and tracking',
+                        'Payment processing',
+                        'Cost vs project timeline analysis',
+                        'Financial reporting',
+                        'Multi-currency support',
+                        'Tax calculations'
+                    ],
+                    'Vendor & Contractor': [
+                        'Contractor administration',
+                        'Vendor evaluation and scoring',
+                        'Performance tracking',
+                        'Compliance verification',
+                        'Payment processing',
+                        'Blacklist management'
+                    ],
+                    'Insurance & Claims': [
+                        'Insurance policy management',
+                        'Claims tracking and processing',
+                        'Performance guarantees',
+                        'Risk assessment',
+                        'Premium tracking',
+                        'Expiry alerts and renewals'
+                    ],
+                    'Correspondence': [
+                        'Correspondence register',
+                        'Email integration',
+                        'Document tracking',
+                        'Communication history',
+                        'Template management',
+                        'Automated notifications'
+                    ],
+                    'Project Management': [
+                        'SIO internal project workflows',
+                        'Milestone tracking',
+                        'Resource allocation',
+                        'Budget vs actual analysis',
+                        'Variation claim log',
+                        'Change order management'
+                    ]
+                },
+                technical: {
+                    'Framework': 'Spring Boot 3.x',
+                    'Database': 'MS SQL Server',
+                    'Port': '8091',
+                    'Integration': 'Sage ERP (planned)',
+                    'Events': 'Kafka Producer'
+                }
+            },
+            'azure-ad': {
+                name: 'Azure Active Directory',
+                description: 'Microsoft identity platform providing authentication and organizational data',
+                features: {
+                    'Authentication': [
+                        'Single Sign-On (SSO) across all systems',
+                        'Multi-factor authentication',
+                        'OAuth 2.0 / OpenID Connect',
+                        'JWT token generation'
+                    ],
+                    'Automated Provisioning': [
+                        'Microsoft 365 account creation during onboarding',
+                        'User group assignment',
+                        'Permission management',
+                        'Email account setup',
+                        'SharePoint access provisioning'
+                    ],
+                    'Organizational Data': [
+                        'Company hierarchy retrieval (GIC and subsidiaries)',
+                        'Department structure synchronization',
+                        'Manager information and reporting lines',
+                        'Committee group management',
+                        'Employee profile synchronization'
+                    ],
+                    'Integration Points': [
+                        'HR Service for onboarding',
+                        'Asset Service for manager data',
+                        'User Service for authentication',
+                        'All services for authorization'
+                    ]
+                },
+                technical: {
+                    'Protocol': 'OAuth 2.0 / OIDC',
+                    'API': 'Microsoft Graph API',
+                    'Token': 'JWT',
+                    'Integration': 'MSAL Libraries'
+                }
+            },
+            'sage': {
+                name: 'Sage 300 ERP',
+                description: 'Enterprise resource planning system for HR and financial management',
+                features: {
+                    'HR Integration - Completed': [
+                        '✅ Automatic employee record creation',
+                        '✅ Personal information synchronization',
+                        '✅ Onboarding data submission',
+                        '✅ Payroll data management',
+                        '✅ Employee status updates',
+                        '✅ Department assignments'
+                    ],
+                    'Benefits': [
+                        'Eliminates manual data entry',
+                        'Reduces human error risk',
+                        'Ensures HR/payroll synchronization',
+                        'Real-time data updates',
+                        'Compliance with HR policies'
+                    ],
+                    'Data Flow': [
+                        'Receives employee data from onboarding',
+                        'Validates and stores personal information',
+                        'Triggers payroll setup',
+                        'Updates employee master records',
+                        'Syncs with financial modules'
+                    ]
+                },
+                technical: {
+                    'Integration': 'REST API',
+                    'Protocol': 'HTTPS',
+                    'Data Format': 'JSON/XML',
+                    'Sync': 'Real-time and batch'
+                }
+            },
+            'adobe': {
+                name: 'Adobe Sign',
+                description: 'Digital signature and document management platform',
+                features: {
+                    'Contract Management - Completed': [
+                        '✅ Digital contract generation',
+                        '✅ Document upload and preparation',
+                        '✅ Signature workflow management',
+                        '✅ Multi-party signature support',
+                        '✅ Automated reminder system',
+                        '✅ Signature status tracking',
+                        '✅ Document storage and retrieval'
+                    ],
+                    'Bursary Integration': [
+                        'Bursary contract generation',
+                        'Applicant signature collection',
+                        'Committee approval signatures',
+                        'Contract archival',
+                        'Audit trail maintenance'
+                    ],
+                    'Benefits': [
+                        'Faster turnaround times',
+                        'Improved traceability',
+                        'Eliminates manual follow-ups',
+                        'Legal compliance',
+                        'Reduced paper usage'
+                    ]
+                },
+                technical: {
+                    'API': 'Adobe Sign REST API',
+                    'Protocol': 'HTTPS',
+                    'Authentication': 'OAuth 2.0',
+                    'Webhooks': 'Real-time status updates'
+                }
+            },
+            'redis': {
+                name: 'Redis Cache Service',
+                description: 'High-performance in-memory data store for caching and session management',
+                features: {
+                    'Caching': [
+                        'Application-level caching',
+                        'Database query caching',
+                        'API response caching',
+                        'Static content caching',
+                        'User preference caching'
+                    ],
+                    'Session Management': [
+                        'JWT token storage',
+                        'User session tracking',
+                        'Login state management',
+                        'Multi-device sessions',
+                        'Session expiry handling'
+                    ],
+                    'Performance': [
+                        'Sub-millisecond latency',
+                        'High throughput',
+                        'Horizontal scaling',
+                        'Data persistence options',
+                        'Cluster mode support'
+                    ]
+                },
+                technical: {
+                    'Type': 'In-Memory Key-Value Store',
+                    'Port': '6379',
+                    'Persistence': 'RDB + AOF',
+                    'Eviction': 'LRU Policy',
+                    'Cluster': 'Redis Cluster'
+                }
+            },
+            'commercial-ui': {
+                name: 'Commercial System Frontend',
+                description: 'Comprehensive business portal integrating all business operations',
+                features: {
+                    'Commercial Module': [
+                        'Client Billing Engine',
+                        'Contract Register & Management',
+                        'Contractor Administration',
+                        'Correspondence Register',
+                        'Cost vs Project Timeline',
+                        'Insurance Management',
+                        'Performance Guarantees',
+                        'SIO Internal Project Workflows',
+                        'Service Level Agreements',
+                        'Variation Claim Log',
+                        'Commercial Reports & Dashboards'
+                    ],
+                    'Legal Module': [
+                        'Compliance Calendar',
+                        'Contract Management',
+                        'Clause Bank',
+                        'Document Vault & Signatures',
+                        'Legal Advice Tracker',
+                        'Litigation Register',
+                        'Legal Reports'
+                    ],
+                    'Engineering Module': [
+                        'Design Workflow Tracker',
+                        'Drawing Register',
+                        'Engineering Dashboards',
+                        'Hold Point Manager',
+                        'TQR/RFI Manager',
+                        'Value Engineering Hub',
+                        'Project Dashboards'
+                    ],
+                    'Governance Module': [
+                        'Committee Pack Management',
+                        'Compliance Tracking',
+                        'Delegation of Authority',
+                        'Governance Risk Management',
+                        'Internal Audit',
+                        'Policy Management',
+                        'Governance Reports'
+                    ],
+                    'HR Module': [
+                        'Employee Onboarding',
+                        'Bursary Applications',
+                        'Leave Management',
+                        'Performance Management'
+                    ],
+                    'Audit Module': [
+                        'Audit Trail',
+                        'Audit Reports',
+                        'Document Version History',
+                        'Compliance Tracking'
+                    ],
+                    'Alerts Module': [
+                        'Alert Dashboard',
+                        'Delivery Preferences',
+                        'Notification History',
+                        'Notification Routing',
+                        'Trigger Events'
+                    ],
+                    'Admin Module': [
+                        'User Management',
+                        'Role Management',
+                        'System Configuration',
+                        'Access Control'
+                    ]
+                },
+                technical: {
+                    'Framework': 'React 18 + TypeScript',
+                    'Build': 'Vite',
+                    'State': 'Redux Toolkit + React Query',
+                    'UI': 'Tailwind CSS',
+                    'Auth': 'MSAL (Azure AD)',
+                    'Port': '3000'
+                }
+            },
+            'asset-ui': {
+                name: 'Asset Management Frontend',
+                description: 'Dedicated portal for comprehensive asset lifecycle management',
+                features: {
+                    'Core Modules': [
+                        'Asset Registration & Tracking',
+                        'Asset Audit Management',
+                        'Asset List & Search',
+                        'Asset Maintenance Scheduling',
+                        'Dashboard with KPIs',
+                        'Depreciation Management',
+                        'Incident Reporting',
+                        'Insurance Management',
+                        'Procurement Management',
+                        'Reports & Analytics',
+                        'Settings & Configuration',
+                        'Store/Inventory View',
+                        'Vendor Management',
+                        'Work Order Management'
+                    ],
+                    'Key Features': [
+                        'Barcode/QR code scanning',
+                        'Asset movement tracking',
+                        'Warranty management',
+                        'Service history',
+                        'Cost analysis',
+                        'Utilization tracking',
+                        'Compliance reports',
+                        'Export capabilities'
+                    ]
+                },
+                technical: {
+                    'Framework': 'React 18 + TypeScript',
+                    'Build': 'Vite',
+                    'State': 'Redux Toolkit',
+                    'UI': 'Tailwind CSS',
+                    'Port': '3001'
+                }
+            },
+            'data-hub': {
+                name: 'Data Hub (In Development)',
+                description: 'Central data repository for improved data governance and reporting',
+                features: {
+                    'Planned Capabilities': [
+                        'Centralized data warehouse',
+                        'Data governance framework',
+                        'Master data management',
+                        'Data quality assurance',
+                        'ETL/ELT pipelines',
+                        'Real-time data synchronization',
+                        'Data lineage tracking',
+                        'Metadata management'
+                    ],
+                    'Integration Points': [
+                        'All microservices data aggregation',
+                        'External system data import',
+                        'Reporting and analytics',
+                        'Data lake integration',
+                        'BI tool connectivity'
+                    ]
+                },
+                technical: {
+                    'Status': 'In Development',
+                    'Architecture': 'Data Lake + Warehouse',
+                    'Processing': 'Batch + Real-time'
+                }
+            },
+            'flowable': {
+                name: 'Flowable BPM (In Progress)',
+                description: 'Business process management and workflow automation engine',
+                features: {
+                    'Workflow Capabilities': [
+                        'BPMN 2.0 process modeling',
+                        'DMN decision management',
+                        'CMMN case management',
+                        'Form builder',
+                        'Task management',
+                        'Process monitoring',
+                        'SLA tracking',
+                        'Escalation rules'
+                    ],
+                    'Use Cases': [
+                        'Onboarding workflows',
+                        'Approval processes',
+                        'Bursary application flow',
+                        'Contract approval chains',
+                        'Asset request workflows',
+                        'Change management processes'
+                    ]
+                },
+                technical: {
+                    'Status': 'In Implementation',
+                    'Engine': 'Flowable BPM',
+                    'Standards': 'BPMN 2.0, DMN, CMMN'
+                }
+            }
+        };
+        
+        // Modal functions
+        function openModal(serviceId) {
+            const modal = document.getElementById('serviceModal');
+            const overlay = document.querySelector('.overlay');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            const details = serviceDetails[serviceId];
+            if (!details) {
+                modalTitle.textContent = 'Service Information';
+                modalBody.innerHTML = '<p>Service details are being updated. Please check back soon.</p>';
+            } else {
+                modalTitle.textContent = details.name;
+                
+                let content = `<p style="color: #7f8c8d; margin-bottom: 20px;">${details.description}</p>`;
+                
+                // Features sections
+                for (const [section, items] of Object.entries(details.features)) {
+                    content += `
+                        <div class="feature-section">
+                            <h3>${section}</h3>
+                            <div class="feature-list">
+                    `;
+                    
+                    items.forEach(item => {
+                        let className = 'feature-item';
+                        if (item.includes('✅')) {
+                            className += ' implemented';
+                        } else if (item.includes('🔄') || item.includes('🧪')) {
+                            className += ' in-progress';
+                        } else if (section.includes('Planned') || section.includes('Development')) {
+                            className += ' planned';
+                        } else {
+                            className += ' implemented';
+                        }
+                        content += `<div class="${className}">${item}</div>`;
+                    });
+                    
+                    content += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Technical details
+                if (details.technical) {
+                    content += `
+                        <div class="feature-section">
+                            <h3>Technical Specifications</h3>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    `;
+                    
+                    for (const [key, value] of Object.entries(details.technical)) {
+                        content += `
+                            <div style="margin: 8px 0;">
+                                <strong style="color: #2c3e50;">${key}:</strong>
+                                <span style="color: #7f8c8d;">${value}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    content += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                modalBody.innerHTML = content;
+            }
+            
+            modal.classList.add('active');
+            overlay.classList.add('active');
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('serviceModal');
+            const overlay = document.querySelector('.overlay');
+            modal.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+        
+        // Add click handlers to all services
+        document.querySelectorAll('.service').forEach(service => {
+            service.addEventListener('click', function() {
+                const serviceId = this.getAttribute('data-service');
+                if (serviceId) {
+                    openModal(serviceId);
+                }
+            });
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
