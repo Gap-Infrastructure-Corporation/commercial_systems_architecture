@@ -6,7 +6,4 @@ It includes frontend portals, backend microservices, Kafka event streaming, exte
 
 The architecture is rendered as a dynamic, clickable HTML interface — no backend required, fully static, and optimized for wiki iframe.
 
----
-
-Manaka Anthony Raphasha
 
